@@ -16,7 +16,9 @@
 
 
 var MongoClient = require('mongodb').MongoClient,
-    assert = require('assert');
+    assert = require('assert'),
+    collectionName = 'item',
+    url = 'mongodb://localhost:27017/mongomart';
 
 
 function ItemDAO(database) {
@@ -50,6 +52,7 @@ function ItemDAO(database) {
         * Ensure categories are organized in alphabetical order before passing
         * to the callback.
         *
+        * db.item.aggregate([{$group:{_id:'$category', count:{$sum:1}}}])
         */
 
         var categories = [];
@@ -58,14 +61,31 @@ function ItemDAO(database) {
             num: 9999
         };
 
-        categories.push(category)
+        categories.push(category);
+
+        // MongoClient.connect(url, function(err, db) {
+            // assert.equal(null, err);
+            getCategoriesDB(this.db, callback);
+        // });
+
+        function getCategoriesDB (db, callback) {
+            db.collection(collectionName).aggregate([
+                { $group: { "_id": "$category", "count": { $sum: 1 } } }
+            ]).toArray(function(err, result) {
+                assert.equal(err, null);
+                // console.log(result);
+                
+                callback(result);
+                // db.close();
+            });
+        }
 
         // TODO-lab1A Replace all code above (in this method).
 
         // TODO Include the following line in the appropriate
         // place within your code to pass the categories array to the
         // callback.
-        callback(categories);
+        // callback(categories);
     }
 
 
@@ -94,18 +114,46 @@ function ItemDAO(database) {
          *
          */
 
-        var pageItem = this.createDummyItem();
+        // var pageItem = this.createDummyItem();
         var pageItems = [];
-        for (var i=0; i<5; i++) {
+        /*for (var i=0; i<5; i++) {
             pageItems.push(pageItem);
-        }
+        }*/
+        var getItemsDB = function(db, callback) {
+            var cursor = {};
+
+            if (category !== 'All') {
+                cursor = db.collection(collectionName).find()
+                    .skip(page*itemsPerPage)
+                    .limit(itemsPerPage)
+                    .sort({'_id': 1});
+            } else {
+                cursor = db.collection(collectionName).find();
+            }
+           
+            cursor.each(function(err, doc) {
+                assert.equal(err, null);
+                if (doc != null) {
+                   // console.dir(doc);
+                   pageItems.push(doc);
+                }
+            });
+
+            callback(pageItems);
+            // db.close();
+        };
+
+        // MongoClient.connect(url, function(err, db) {
+            // assert.equal(null, err);
+            getItemsDB(this.db, callback);
+        // });
 
         // TODO-lab1B Replace all code above (in this method).
 
         // TODO Include the following line in the appropriate
         // place within your code to pass the items for the selected page
         // to the callback.
-        callback(pageItems);
+        // callback(pageItems);
     }
 
 
@@ -129,9 +177,23 @@ function ItemDAO(database) {
          *
          */
 
+        // MongoClient.connect(url, function(err, db) {
+            // assert.equal(null, err);
+            getNumItemsDB(this.db, callback);
+        // });
+
+        function getNumItemsDB (db, callback) {
+            db.collection(collectionName).find().count(function(err, count) {
+                assert.equal(null, err);
+                numItems = count;
+                callback(numItems);
+                db.close();
+            });
+        }
+
          // TODO Include the following line in the appropriate
          // place within your code to pass the count to the callback.
-        callback(numItems);
+        // callback(numItems);
     }
 
 
