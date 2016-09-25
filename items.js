@@ -63,20 +63,21 @@ function ItemDAO(database) {
 
         categories.push(category);
 
-        // MongoClient.connect(url, function(err, db) {
-            // assert.equal(null, err);
-            getCategoriesDB(this.db, callback);
-        // });
+        getCategoriesDB(this.db, callback);
 
         function getCategoriesDB (db, callback) {
             db.collection(collectionName).aggregate([
-                { $group: { "_id": "$category", "count": { $sum: 1 } } }
+                { $group: { "_id": "$category", "num": { $sum: 1 } } },
+                { $sort: { "_id": 1 } }
             ]).toArray(function(err, result) {
+                var totalCount = 0;
                 assert.equal(err, null);
-                // console.log(result);
-                
-                callback(result);
-                // db.close();
+                result.forEach(function(category){
+                    totalCount += category.num;
+                    categories.push(category);
+                });
+                category.num = totalCount;
+                callback(categories);
             });
         }
 
@@ -86,7 +87,7 @@ function ItemDAO(database) {
         // place within your code to pass the categories array to the
         // callback.
         // callback(categories);
-    }
+    };
 
 
     this.getItems = function(category, page, itemsPerPage, callback) {
@@ -120,18 +121,27 @@ function ItemDAO(database) {
             pageItems.push(pageItem);
         }*/
         var getItemsDB = function(db, callback) {
-            var cursor = {};
-
             if (category !== 'All') {
-                cursor = db.collection(collectionName).find()
+                db.collection(collectionName).find({category: category})
                     .skip(page*itemsPerPage)
                     .limit(itemsPerPage)
-                    .sort({'_id': 1});
+                    .sort({'_id': 1}).toArray(function(err, result) {
+                      assert.equal(err, null);
+
+                      callback(result);
+                  });
             } else {
-                cursor = db.collection(collectionName).find();
+                db.collection(collectionName).find()
+                  .skip(page*itemsPerPage)
+                  .limit(itemsPerPage)
+                  .sort({'_id': 1}).toArray(function(err, result) {
+                    assert.equal(err, null);
+
+                    callback(result);
+                });
             }
            
-            cursor.each(function(err, doc) {
+            /*cursor.each(function(err, doc) {
                 assert.equal(err, null);
                 if (doc != null) {
                    // console.dir(doc);
@@ -139,14 +149,10 @@ function ItemDAO(database) {
                 }
             });
 
-            callback(pageItems);
-            // db.close();
+            callback(pageItems);*/
         };
 
-        // MongoClient.connect(url, function(err, db) {
-            // assert.equal(null, err);
-            getItemsDB(this.db, callback);
-        // });
+        getItemsDB(this.db, callback);
 
         // TODO-lab1B Replace all code above (in this method).
 
@@ -154,7 +160,7 @@ function ItemDAO(database) {
         // place within your code to pass the items for the selected page
         // to the callback.
         // callback(pageItems);
-    }
+    };
 
 
     this.getNumItems = function(category, callback) {
@@ -177,24 +183,29 @@ function ItemDAO(database) {
          *
          */
 
-        // MongoClient.connect(url, function(err, db) {
-            // assert.equal(null, err);
-            getNumItemsDB(this.db, callback);
-        // });
+        getNumItemsDB(this.db, callback);
 
         function getNumItemsDB (db, callback) {
-            db.collection(collectionName).find().count(function(err, count) {
-                assert.equal(null, err);
-                numItems = count;
-                callback(numItems);
-                db.close();
-            });
+            if(!category || category === 'All') {
+                db.collection(collectionName).find().count(function(err, count) {
+                    assert.equal(null, err);
+                    numItems = count;
+                    callback(numItems);
+                });
+            } else {
+                db.collection(collectionName).find({category: category}).count(function(err, count) {
+                    assert.equal(null, err);
+                    numItems = count;
+                    callback(numItems);
+                });
+            }
+
         }
 
          // TODO Include the following line in the appropriate
          // place within your code to pass the count to the callback.
         // callback(numItems);
-    }
+    };
 
 
     this.searchItems = function(query, page, itemsPerPage, callback) {
