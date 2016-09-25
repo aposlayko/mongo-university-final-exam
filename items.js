@@ -235,19 +235,30 @@ function ItemDAO(database) {
          *
          */
 
-        var item = this.createDummyItem();
+        /*var item = this.createDummyItem();
         var items = [];
         for (var i=0; i<5; i++) {
             items.push(item);
-        }
+        }*/
+
+        // db.item.createIndex( { title: "text", slogan: "text" , description: "text" } )
+
+        this.db.collection(collectionName).find({ $text: { $search: query } })
+          .skip(page*itemsPerPage)
+          .limit(itemsPerPage)
+          .sort({'_id': 1}).toArray(function(err, result) {
+              assert.equal(err, null);
+
+               callback(result);
+          });
 
         // TODO-lab2A Replace all code above (in this method).
 
         // TODO Include the following line in the appropriate
         // place within your code to pass the items for the selected page
         // of search results to the callback.
-        callback(items);
-    }
+        //callback(items);
+    };
 
 
     this.getNumSearchItems = function(query, callback) {
@@ -267,9 +278,15 @@ function ItemDAO(database) {
         * a SINGLE text index on title, slogan, and description. You should
         * simply do this in the mongo shell.
         */
+        this.db.collection(collectionName).find({ $text: { $search: query } })
+          .count(function(err, count) {
+            assert.equal(null, err);
+            numItems = count;
+            callback(numItems);
+        });
 
-        callback(numItems);
-    }
+        //callback(numItems);
+    };
 
 
     this.getItem = function(itemId, callback) {
@@ -285,15 +302,17 @@ function ItemDAO(database) {
          *
          */
 
-        var item = this.createDummyItem();
-
+        //var item = this.createDummyItem();
+        this.db.collection(collectionName).findOne({_id: itemId}, function(err, document) {
+            callback(document);
+        });
         // TODO-lab3 Replace all code above (in this method).
 
         // TODO Include the following line in the appropriate
         // place within your code to pass the matching item
         // to the callback.
-        callback(item);
-    }
+
+    };
 
 
     this.getRelatedItems = function(callback) {
@@ -328,18 +347,29 @@ function ItemDAO(database) {
             comment: comment,
             stars: stars,
             date: Date.now()
-        }
+        };
+
+        var _self = this;
+
+        this.db.collection(collectionName).findOne({_id: itemId}, function(err, document) {
+            var rew = document.reviews ? document.reviews : [];
+            rew.push(reviewDoc);
+            _self.db.collection(collectionName).updateOne({_id: itemId}, {reviews: rew}, function(err, doc) {
+                assert.equal(null, err);
+                callback(doc);
+            });
+        });
 
         // TODO replace the following two lines with your code that will
         // update the document with a new review.
-        var doc = this.createDummyItem();
-        doc.reviews = [reviewDoc];
+        //var doc = this.createDummyItem();
+        //doc.reviews = [reviewDoc];
 
         // TODO Include the following line in the appropriate
         // place within your code to pass the updated doc to the
         // callback.
-        callback(doc);
-    }
+        //callback(doc);
+    };
 
 
     this.createDummyItem = function() {
