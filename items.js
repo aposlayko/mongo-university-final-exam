@@ -12,6 +12,10 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
+
+  Lab0:
+  mongoimport --drop -d mongomart -c item data/items.json
+  mongoimport --drop -d mongomart -c cart data/cart.json
 */
 
 
@@ -352,9 +356,9 @@ function ItemDAO(database) {
         var _self = this;
 
         this.db.collection(collectionName).findOne({_id: itemId}, function(err, document) {
-            var rew = document.reviews ? document.reviews : [];
-            rew.push(reviewDoc);
-            _self.db.collection(collectionName).updateOne({_id: itemId}, {reviews: rew}, function(err, doc) {
+            document.reviews = document.reviews ? document.reviews : [];
+            document.reviews.push(reviewDoc);
+            _self.db.collection(collectionName).updateOne({_id: itemId}, document, function(err, doc) {
                 assert.equal(null, err);
                 callback(doc);
             });
