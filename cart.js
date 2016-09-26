@@ -88,10 +88,21 @@ function CartDAO(database) {
          *
          */
 
-        callback(null);
+        this.db.collection("cart")
+        .find({userId: userId, "items._id": itemId}, {"items.$": 1})
+        .limit(1)
+        .next(function(err, item) {
+            assert.equal(null, err);
+            console.log(err);
+            if (item != null) {
+                item = item.items[0];
+            }
+            console.log(item);
+            callback(item);
+        });
 
         // TODO-lab6 Replace all code above (in this method).
-    }
+    };
 
 
     /*
@@ -180,38 +191,30 @@ function CartDAO(database) {
         *
         */
 
-        var userCart = {
-            userId: userId,
-            items: []
+        var updateDoc = {};
+
+        if (quantity == 0) {
+            updateDoc = {"$pull": {items: {_id: itemId}}};
+        } else {
+            updateDoc = {"$set": {"items.$.quantity": quantity}};
         }
-        var dummyItem = this.createDummyItem();
-        dummyItem.quantity = quantity;
-        userCart.items.push(dummyItem);
-        callback(userCart);
+
+        this.db.collection("cart").findOneAndUpdate(
+          {
+              userId: userId,
+              "items._id": itemId
+          },
+          updateDoc,
+          {returnOriginal: false},
+          function (err, result) {
+              assert.equal(null, err);
+              console.log(result.value);
+              callback(result.value);
+          });
 
         // TODO-lab7 Replace all code above (in this method).
 
-    }
-
-    this.createDummyItem = function() {
-        "use strict";
-
-        var item = {
-            _id: 1,
-            title: "Gray Hooded Sweatshirt",
-            description: "The top hooded sweatshirt we offer",
-            slogan: "Made of 100% cotton",
-            stars: 0,
-            category: "Apparel",
-            img_url: "/img/products/hoodie.jpg",
-            price: 29.99,
-            quantity: 1,
-            reviews: []
-        };
-
-        return item;
-    }
-
+    };
 }
 
 
